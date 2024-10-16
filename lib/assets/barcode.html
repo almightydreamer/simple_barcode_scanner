@@ -29,6 +29,7 @@
 
 <script>
         const html5QrCode = new Html5Qrcode("reader");
+        let isScanning = false; // Flag to track scanning state
 
         console.log("Starting QR Code Scanner");
 
@@ -59,19 +60,34 @@
 
         // Start the scanner with dynamic QR box size
         function startScanner() {
-            const { width, height } = calculateQrBox();
-            const config = { fps: 10, qrbox: { width, height } };
+            if (!isScanning) {
+                isScanning = true; // Set flag to indicate scanning has started
+                const { width, height } = calculateQrBox();
+                const config = { fps: 10, qrbox: { width, height } };
 
-            html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                .catch(err => console.error("Failed to start QR scanner", err));
+                html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                    .catch(err => {
+                        console.error("Failed to start QR scanner", err);
+                        isScanning = false; // Reset flag on error
+                    });
+            }
+        }
+
+        // Stop the scanner before resizing
+        function stopScanner() {
+            if (isScanning) {
+                html5QrCode.stop().then(() => {
+                    isScanning = false; // Reset flag when stopped
+                }).catch(err => console.error("Failed to stop scanner", err));
+            }
         }
 
         // Recalculate QR box on window resize
         window.addEventListener('resize', () => {
-            console.log("Window resized. Restarting scanner with new dimensions.");
+            console.log("Window resized. Adjusting QR box dimensions.");
 
-            html5QrCode.stop().then(() => startScanner())
-                .catch(err => console.error("Failed to restart scanner", err));
+            stopScanner(); // Stop the scanner to prevent permission request
+            startScanner(); // Start the scanner again with new dimensions
         });
 
         // Start the scanner on page load
