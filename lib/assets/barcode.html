@@ -36,18 +36,10 @@
         // Callback when a QR code is successfully scanned
         const qrCodeSuccessCallback = (decodedText, decodedResult) => {
             console.log(`Decoded text: ${decodedText}`);
-
-            // Stop the scanner after a successful scan
             html5QrCode.stop().then(() => {
                 console.log("QR Code scanning stopped.");
-
                 // Send decoded text to parent window or WebView
                 window.parent.postMessage(decodedText, "*");
-
-                if (window.chrome.webview !== undefined) {
-                    const param = { "methodName": "successCallback", "data": decodedText };
-                    window.chrome.webview.postMessage(param);
-                }
             }).catch(err => console.error("Failed to stop scanner", err));
         };
 
@@ -73,7 +65,7 @@
             }
         }
 
-        // Stop the scanner before resizing
+        // Stop the scanner if it's currently running
         function stopScanner() {
             if (isScanning) {
                 html5QrCode.stop().then(() => {
@@ -82,12 +74,14 @@
             }
         }
 
-        // Recalculate QR box on window resize
+        // Handle window resize
         window.addEventListener('resize', () => {
             console.log("Window resized. Adjusting QR box dimensions.");
 
-            stopScanner(); // Stop the scanner to prevent permission request
-            startScanner(); // Start the scanner again with new dimensions
+            // If the scanner is running, stop it before recalculating dimensions
+            stopScanner();
+            // Start the scanner again with new dimensions
+            setTimeout(startScanner, 500); // Delay restart to allow time for the camera to release
         });
 
         // Start the scanner on page load
