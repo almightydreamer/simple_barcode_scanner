@@ -5,6 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
+        /* Ensure the canvas and reader are correctly positioned */
         html, body {
             height: 100%; /* Stretch viewport to full height */
             margin: 0; /* Remove margins */
@@ -32,30 +33,31 @@
 
         console.log("Starting QR Code Scanner");
 
+        // Callback when a QR code is successfully scanned
         const qrCodeSuccessCallback = (decodedText, decodedResult) => {
             console.log(`Decoded text: ${decodedText}`);
-            // Stop the scanner after a successful scan
-            stopScanner(); // Stop scanner on success
-            // Send decoded text to parent window or WebView
-            window.parent.postMessage(decodedText, "*");
+            html5QrCode.stop().then(() => {
+                console.log("QR Code scanning stopped.");
+                // Send decoded text to parent window or WebView
+                window.parent.postMessage(decodedText, "*");
+            }).catch(err => console.error("Failed to stop scanner", err));
         };
 
+        // Function to calculate scanning area dynamically
         function calculateQrBox() {
             const width = Math.min(window.innerWidth * 0.8, 600);  // 80% width, max 600px
             const height = Math.min(window.innerHeight * 0.8, width / (16 / 9)); // Maintain aspect ratio
             return { width: Math.round(width), height: Math.round(height) };
         }
 
+        // Start the scanner with dynamic QR box size
         function startScanner() {
             if (!isScanning) {
                 isScanning = true; // Set flag to indicate scanning has started
                 const { width, height } = calculateQrBox();
-                const config = { fps: 10, qrbox: { 500, 500 } };
+                const config = { fps: 10, qrbox: { width, height } };
 
                 html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
-                    .then(() => {
-                        console.log("QR scanner started");
-                    })
                     .catch(err => {
                         console.error("Failed to start QR scanner", err);
                         isScanning = false; // Reset flag on error
@@ -63,14 +65,12 @@
             }
         }
 
+        // Stop the scanner if it's currently running
         function stopScanner() {
             if (isScanning) {
                 html5QrCode.stop().then(() => {
-                    console.log("QR scanner stopped");
                     isScanning = false; // Reset flag when stopped
-                }).catch(err => {
-                    console.error("Failed to stop scanner", err);
-                });
+                }).catch(err => console.error("Failed to stop scanner", err));
             }
         }
 
@@ -78,14 +78,10 @@
         window.addEventListener('resize', () => {
             console.log("Window resized. Adjusting QR box dimensions.");
 
-            // Stop the scanner first
+            // If the scanner is running, stop it before recalculating dimensions
             stopScanner();
-            // Restart the scanner after a slight delay
-            setTimeout(() => {
-                if (!isScanning) { // Only start if it's not scanning
-                    startScanner();
-                }
-            }, 500); // Adjust delay as necessary
+            // Start the scanner again with new dimensions
+            setTimeout(startScanner, 500); // Delay restart to allow time for the camera to release
         });
 
         // Start the scanner on page load

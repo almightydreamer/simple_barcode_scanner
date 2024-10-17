@@ -50,18 +50,22 @@ class WindowBarcodeScanner extends StatelessWidget {
         ),
         builder: (context, snapshot) {
           if (snapshot.hasData && snapshot.data != null) {
-            return Webview(
+            return Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
-              controller,
-              permissionRequested: (url, permissionKind, isUserInitiated) =>
-                  _onPermissionRequested(
-                    url: url,
-                    kind: permissionKind,
-                    isUserInitiated: isUserInitiated,
-                    context: context,
-                    isPermissionGranted: isPermissionGranted,
-                  ),
+              child: Webview(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+                controller,
+                permissionRequested: (url, permissionKind, isUserInitiated) =>
+                    _onPermissionRequested(
+                      url: url,
+                      kind: permissionKind,
+                      isUserInitiated: isUserInitiated,
+                      context: context,
+                      isPermissionGranted: isPermissionGranted,
+                    ),
+              ),
             );
           } else if (snapshot.hasError) {
             return Center(
