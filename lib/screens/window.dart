@@ -50,18 +50,22 @@ class WindowBarcodeScanner extends StatelessWidget {
         ),
         builder: (context, snapshot) {
           if (snapshot.hasData && snapshot.data != null) {
-            return Webview(
+            return Container(
               height: MediaQuery.of(context).size.height,
               width: MediaQuery.of(context).size.width,
-              controller,
-              permissionRequested: (url, permissionKind, isUserInitiated) =>
-                  _onPermissionRequested(
-                    url: url,
-                    kind: permissionKind,
-                    isUserInitiated: isUserInitiated,
-                    context: context,
-                    isPermissionGranted: isPermissionGranted,
-                  ),
+              child: Webview(
+                height: MediaQuery.of(context).size.height,
+                width: MediaQuery.of(context).size.width,
+                controller,
+                permissionRequested: (url, permissionKind, isUserInitiated) =>
+                    _onPermissionRequested(
+                      url: url,
+                      kind: permissionKind,
+                      isUserInitiated: isUserInitiated,
+                      context: context,
+                      isPermissionGranted: isPermissionGranted,
+                    ),
+              ),
             );
           } else if (snapshot.hasError) {
             return Center(
@@ -148,43 +152,5 @@ class WindowBarcodeScanner extends StatelessWidget {
       rethrow;
     }
     return true;
-  }
-
-  _buildAppBar(WebviewController controller, BuildContext context) {
-    if (appBarTitle == null && barcodeAppBar == null) {
-      return null;
-    }
-    if (barcodeAppBar != null) {
-      return AppBar(
-        title: barcodeAppBar?.appBarTitle != null
-            ? Text(barcodeAppBar!.appBarTitle!)
-            : null,
-        centerTitle: barcodeAppBar?.centerTitle ?? false,
-        leading: barcodeAppBar!.enableBackButton == true
-            ? IconButton(
-                onPressed: () {
-                  /// send close event to web-view
-                  controller.postWebMessage(json.encode({"event": "close"}));
-                  Navigator.pop(context);
-                },
-                icon: barcodeAppBar?.backButtonIcon ??
-                    const Icon(Icons.arrow_back_ios),
-              )
-            : null,
-        automaticallyImplyLeading: false,
-      );
-    }
-    return AppBar(
-      title: Text(appBarTitle ?? kScanPageTitle),
-      centerTitle: centerTitle,
-      leading: IconButton(
-        onPressed: () {
-          /// send close event to web-view
-          controller.postWebMessage(json.encode({"event": "close"}));
-          Navigator.pop(context);
-        },
-        icon: const Icon(Icons.arrow_back_ios),
-      ),
-    );
   }
 }
