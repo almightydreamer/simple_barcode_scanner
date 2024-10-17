@@ -1,69 +1,95 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title></title>
+    <title>QR Code Scanner</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-         /* In order to place the tracking correctly */
-         canvas.drawing, canvas.drawingBuffer {
-         position: absolute;
-         left: 0;
-         top: 0;
-         }
-         html, body {
-         height: 100%; /* IMPORTANT!!! Stretches viewport to 100% */
-         }
-      </style>
+        html, body {
+            height: 100%; /* Stretch viewport to full height */
+            margin: 0; /* Remove margins */
+            overflow: hidden; /* Prevent scrolling */
+            display: flex;
+            justify-content: center; /* Center horizontally */
+            align-items: center; /* Center vertically */
+            background-color: #f0f0f0;
+        }
+
+        #reader {
+            width: 100vw; /* Take up full viewport width */
+            height: 100vh; /* Take up full viewport height */
+            position: relative;
+        }
+    </style>
     <script src="html5-qrcode.min.js"></script>
 </head>
 <body>
-<!-- Div to show the scanner -->
-<div id="reader" ></div>
+<div id="reader"></div>
+
 <script>
-  //refer doc here https://github.com/mebjas/html5-qrcode
- const html5QrCode = new Html5Qrcode("reader");
- console.log("Starting SCANNING CODE");
- const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-     html5QrCode.stop();
-     /* handle success for web */
-     window.parent.postMessage(decodedText, "*");
+        const html5QrCode = new Html5Qrcode("reader");
+        let isScanning = false; // Flag to track scanning state
 
-     /* handle success for window */
-     if (window.chrome.webview != "undefined") {
-         var param = {
-             "methodName": "successCallback",
-             "data": decodedText
-         }
-         window.chrome.webview.postMessage(param);
-     }
+        console.log("Starting QR Code Scanner");
 
- };
- const config = {
-     fps: 10,
-     qrbox: {
-         width: 280,
-         height: 120,
-         aspectRatio: 1.7777778
-     }
- };
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            console.log(`Decoded text: ${decodedText}`);
+            // Stop the scanner after a successful scan
+            stopScanner(); // Stop scanner on success
+            // Send decoded text to parent window or WebView
+            window.parent.postMessage(decodedText, "*");
+        };
 
- // If you want to prefer back camera
- html5QrCode.start({
-     facingMode: "environment"
- }, config, qrCodeSuccessCallback);
- //html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
+        function calculateQrBox() {
+            const width = Math.min(window.innerWidth * 0.8, 600);  // 80% width, max 600px
+            const height = Math.min(window.innerHeight * 0.8, width / (16 / 9)); // Maintain aspect ratio
+            return { width: Math.round(width), height: Math.round(height) };
+        }
 
- //Window event listener
- if (window.chrome.webview != undefined) {
-     window.chrome.webview.addEventListener('message', function(e) {
-         let data = JSON.parse(JSON.stringify(e.data));
-         if (data.event === "close") {
-             html5QrCode.stop();
-         }
+        function startScanner() {
+            if (!isScanning) {
+                isScanning = true; // Set flag to indicate scanning has started
+                const { width, height } = calculateQrBox();
+                const config = { fps: 10, qrbox: { width, height } };
 
-     });
- }
- </script>
+                html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+                    .then(() => {
+                        console.log("QR scanner started");
+                    })
+                    .catch(err => {
+                        console.error("Failed to start QR scanner", err);
+                        isScanning = false; // Reset flag on error
+                    });
+            }
+        }
+
+        function stopScanner() {
+            if (isScanning) {
+                html5QrCode.stop().then(() => {
+                    console.log("QR scanner stopped");
+                    isScanning = false; // Reset flag when stopped
+                }).catch(err => {
+                    console.error("Failed to stop scanner", err);
+                });
+            }
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            console.log("Window resized. Adjusting QR box dimensions.");
+
+            // Stop the scanner first
+            stopScanner();
+            // Restart the scanner after a slight delay
+            setTimeout(() => {
+                if (!isScanning) { // Only start if it's not scanning
+                    startScanner();
+                }
+            }, 500); // Adjust delay as necessary
+        });
+
+        // Start the scanner on page load
+        startScanner();
+    </script>
 </body>
 </html>
