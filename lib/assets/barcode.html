@@ -1,69 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title></title>
+    <title>QR Code Scanner</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-         /* In order to place the tracking correctly */
-         canvas.drawing, canvas.drawingBuffer {
-         position: absolute;
-         left: 0;
-         top: 0;
-         }
-         html, body {
-         height: 100%; /* IMPORTANT!!! Stretches viewport to 100% */
-         }
-      </style>
+        /* Ensure canvas and reader are positioned correctly */
+        canvas.drawing, canvas.drawingBuffer {
+            position: absolute;
+            left: 0;
+            top: 0;
+        }
+
+        html, body {
+            height: 100%;   /* Stretch to 100% of the viewport */
+            margin: 0;      /* Remove any margins */
+            padding: 0;     /* Remove any padding */
+            overflow: hidden; /* Prevent scrolling */
+            display: flex;
+            justify-content: center;  /* Center horizontally */
+            align-items: center;      /* Center vertically */
+        }
+
+        #reader {
+            width: 100vw;   /* Full width of viewport */
+            height: 100vh;  /* Full height of viewport */
+            position: relative;
+        }
+    </style>
     <script src="html5-qrcode.min.js"></script>
 </head>
 <body>
 <!-- Div to show the scanner -->
-<div id="reader" ></div>
+<div id="reader"></div>
+
 <script>
-  //refer doc here https://github.com/mebjas/html5-qrcode
- const html5QrCode = new Html5Qrcode("reader");
- console.log("Starting SCANNING CODE");
- const qrCodeSuccessCallback = (decodedText, decodedResult) => {
-     html5QrCode.stop();
-     /* handle success for web */
-     window.parent.postMessage(decodedText, "*");
+        const html5QrCode = new Html5Qrcode("reader");
+        console.log("Starting QR Code Scanner");
 
-     /* handle success for window */
-     if (window.chrome.webview != "undefined") {
-         var param = {
-             "methodName": "successCallback",
-             "data": decodedText
-         }
-         window.chrome.webview.postMessage(param);
-     }
+        const qrCodeSuccessCallback = (decodedText, decodedResult) => {
+            console.log(`Decoded Text: ${decodedText}`);
+            html5QrCode.stop();
+            // Handle success for web
+            window.parent.postMessage(decodedText, "*");
 
- };
- const config = {
-     fps: 10,
-     qrbox: {
-         width: 380,
-         height: 220,
-         aspectRatio: 2.7777778
-     }
- };
+            // Handle success for WebView (if applicable)
+            if (window.chrome.webview !== undefined) {
+                const param = { methodName: "successCallback", data: decodedText };
+                window.chrome.webview.postMessage(param);
+            }
+        };
 
- // If you want to prefer back camera
- html5QrCode.start({
-     facingMode: "environment"
- }, config, qrCodeSuccessCallback);
- //html5QrCode.start({ facingMode: "user" }, config, qrCodeSuccessCallback);
+        const config = {
+            fps: 10,
+            qrbox: { width: 380, height: 220, aspectRatio: 2.7777778 }
+        };
 
- //Window event listener
- if (window.chrome.webview != undefined) {
-     window.chrome.webview.addEventListener('message', function(e) {
-         let data = JSON.parse(JSON.stringify(e.data));
-         if (data.event === "close") {
-             html5QrCode.stop();
-         }
+        // Start QR scanner with back camera by default
+        html5QrCode.start({ facingMode: "environment" }, config, qrCodeSuccessCallback)
+            .catch(err => console.error("QR Scanner failed to start", err));
 
-     });
- }
- </script>
+        // Stop scanner on WebView event (if applicable)
+        if (window.chrome.webview !== undefined) {
+            window.chrome.webview.addEventListener('message', (e) => {
+                const data = JSON.parse(JSON.stringify(e.data));
+                if (data.event === "close") {
+                    html5QrCode.stop();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
